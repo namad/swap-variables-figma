@@ -1,0 +1,19 @@
+{
+    "name": "Swap Variables",
+    "id": "xxx",
+    "api": "1.0.0",
+    "main": "dist/plugin.js",
+    "networkAccess": {
+        "allowedDomains": [
+            "none"
+        ]
+    },
+    "permissions": [
+        "teamlibrary"
+    ],
+    "documentAccess": "dynamic-page",
+    "editorType": [
+        "figma"
+    ],
+    "ui": "dist/variableUtils.html"
+}
