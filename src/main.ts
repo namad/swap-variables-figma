@@ -2,7 +2,7 @@ import { toTitleCase } from './utils/text-to-title-case';
 import { flattenObject } from './utils/flatten-object';
 import { roundTwoDigits } from './utils/round-two-digits';
 import { swapVariables } from './utils/swap-variables';
-import { collectVariables, getImportedVariables, removeVariableCollection, syncVariableCollections } from './utils/collect-variables';
+import { removeVariableCollection, syncVariableCollections } from './utils/collect-variables';
 import * as store from './utils/storage2';
 
 console.clear();
@@ -33,9 +33,6 @@ figma.ui.onmessage = async (eventData) => {
     const params = eventData.params;
 
     if (eventData.type === "IMPORT") {
-    }
-    else if (eventData.type === "COLLECT_VARS") {
-        await collectVariables(eventData.fileName);
     }
     else if (eventData.type === "VARS_UI_LOADED") {
         await syncVariableCollections();

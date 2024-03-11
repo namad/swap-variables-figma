@@ -6,16 +6,20 @@ export async function getStoreData() {
         throw e;
     });
 
-    for(const collection of libraryCollections) {
-        await getVariablesInLibraryCollection(collection, store);
-    }
+    await Promise.all(libraryCollections.map(async (collection) => {
+        return await figma.teamLibrary.getVariablesInLibraryCollectionAsync(collection.key).then(data => {
+            let variables: LibraryVariable[] = store.get(collection.libraryName) || [];
+            variables = variables.concat(data);
+            store.set(collection.libraryName, variables);
+        });
+    }));
 
     const localLibraryVariables = await collectLocalVariables();
 
     if(localLibraryVariables) {
         store.set(localLibraryVariables.name, localLibraryVariables.libraryVariables)
     }
-    debugger
+
     return store;
 }
 
@@ -42,15 +46,6 @@ async function collectLocalVariables() {
     }
 }
 
-
-async function getVariablesInLibraryCollection(collection: LibraryVariableCollection, store: Map<string, LibraryVariable[]> ) {
-    let variables: LibraryVariable[] = store.get(collection.libraryName) || [];
-
-    let collectionVars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(collection.key);
-    variables = variables.concat(collectionVars)
-
-    store.set(collection.libraryName, variables)
-}
 
 export async function set(name: string, data: LibraryVariable[]) {
     store.set(name, data)

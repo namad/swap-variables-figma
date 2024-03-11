@@ -13,8 +13,7 @@ export async function swapVariables(data: LibraryVariable[]) {
     importadVariablesLibrary = [];
 
     await Promise.all(data.map(async (record) => {
-        const variable = await figma.variables.importVariableByKeyAsync(record.key)
-        importadVariablesLibrary.push(variable);
+        return await figma.variables.importVariableByKeyAsync(record.key).then(variable => importadVariablesLibrary.push(variable));
     }));
 
     totalLayersCount = 0;

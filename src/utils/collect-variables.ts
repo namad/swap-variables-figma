@@ -22,39 +22,6 @@ interface VariableData {
     name: string;
 }
 
-
-
-export async function collectVariables(fileName?: string) {
-    // const variables = await figma.variables.getLocalVariablesAsync().catch(err => {
-    //     throw (err);
-    // });
-
-    // const importedData = variables.map(variable => {
-    //     const {
-    //         key, id, name
-    //     } = variable;
-
-    //     return { name, key, id };
-    // })
-
-    // let fileKey = figma.root.getPluginData('SDSFileKey');
-
-    // if (!fileKey) {
-    //     fileKey = uuidv4();
-    //     figma.root.setPluginData('SDSFileKey', fileKey);
-    // }
-
-    // await store.set(fileKey, {
-    //     type: 'variables',
-    //     fileName: fileName || figma.root.name,
-    //     timestamp: new Date().getTime(),
-    //     variables: importedData
-    // });
-
-    // const data = await getImportedVariables();
-    // figma.ui.postMessage({ event: "SYNC_VARS", fileName: figma.root.name, data: data });
-}
-
 export async function getImportedVariables() {
     return await store.getStoreData();
 }
