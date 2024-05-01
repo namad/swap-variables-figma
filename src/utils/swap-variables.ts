@@ -8,6 +8,10 @@ let missingLayersCount = 0;
 
 let importadVariablesLibrary: Variable[];
 
+function checkBoundVariabled(node: SceneNode): boolean {
+    return 'boundVariables' in node && Object.keys(node.boundVariables).length > 0
+}
+
 export async function swapVariables(data: LibraryVariable[]) {
 
     importadVariablesLibrary = [];
@@ -30,19 +34,15 @@ export async function swapVariables(data: LibraryVariable[]) {
 
     figma.currentPage.selection.forEach((node: SceneNode) => {
 
-        if('boundVariables' in node && Object.keys(node.boundVariables).length > 0) {
+        if(checkBoundVariabled(node)) {
             _nodes.push(node);
         }
 
         if ('findAll' in node) {
             const nodes = node.findAll((n: SceneNode) => {
-                if('boundVariables' in n) {
-                    return Object.keys(n.boundVariables).length > 0
-                }
-                else {
-                    return false;
-                }
+                return checkBoundVariabled(n);
             });
+
             _nodes = _nodes.concat(nodes);
         }
     });
@@ -109,9 +109,14 @@ export async function findVariableMatch(varId: string) {
 }
 
 
-async function processLayer(node:SceneNode, count) {
+async function processLayer(node:SceneNode, count:number) {
     const boundVairables = Object.entries(node.boundVariables);
 
+    if(node.type == 'TEXT') {
+        return await processTextNode(node, count)
+    }
+
+    
     await Promise.all(boundVairables.map(async ([propName, boundVar]) => {
         return await bindVariable(node, propName, boundVar).catch((err) => {
             return err + `${propName}`;
@@ -155,7 +160,6 @@ export async function bindPropertyVariables(props, figmaFn) {
 }
 
 async function bindVariable(node: SceneNode, propName: any, variableBinding: any): Promise<SceneNode> {
-
     if (propName == 'fills' && 'fills' in node) {
         node.fills = await bindPropertyVariables(node.fills, figma.variables.setBoundVariableForPaint);
     }
@@ -182,3 +186,61 @@ async function bindVariable(node: SceneNode, propName: any, variableBinding: any
     return node;
 }
 
+async function processTextNode(node: TextNode, count: number): Promise<TextNode> {
+    const boundStyleVariables = node.getStyledTextSegments(['boundVariables']);
+    const fillStyleTextSegments = node.getStyledTextSegments(['fills']);
+
+    for(const textSegment of boundStyleVariables) {
+        if('boundVariables' in textSegment) {
+            const boundVairables = Object.entries(textSegment.boundVariables) as [any, VariableAlias][];
+
+            
+            await Promise.all(boundVairables.map(async ([propName, boundVar]) => {
+                return await bindTextRangeVariables(boundVar, node, textSegment, propName);
+            }))
+
+        }
+    }
+
+    for(const textSegment of fillStyleTextSegments) {
+        if('fills' in textSegment) {
+            let newPaints = []
+            for(const fill of textSegment.fills) {
+                if('boundVariables' in fill) {
+                    const colorVariableReference = fill.boundVariables.color.id;
+                    const figmaVariable = await findVariableMatch(colorVariableReference);
+
+                    if(!figmaVariable) continue;
+
+                    const boundFill = figma.variables.setBoundVariableForPaint(fill, 'color', figmaVariable);
+                    newPaints.push(boundFill);
+                }
+            }
+
+            if(newPaints.length) {
+                node.setRangeFills(textSegment.start, textSegment.end, newPaints);
+            }
+        }
+    }
+    
+    if(count % 50 == 0) {
+        await delayAsync(1);
+    }
+    
+    return node;
+}
+
+async function bindTextRangeVariables(boundVar: VariableAlias, node: TextNode, textSegment: Pick<StyledTextSegment, "characters" | "start" | "end" | "boundVariables">, propName: any) {
+    console.log(`bindTextRangeVariables: ${propName}`);
+
+    const variable = await findVariableMatch(boundVar.id);
+    if (variable) {
+        try {
+            node.setRangeBoundVariable(textSegment.start, textSegment.end, propName, variable);
+        }
+        catch(e) {
+            console.warn(`Failed to bind ${propName} to a variable${variable.name}:${variable.resolvedType}`);
+            console.log(e); // some coding error in handling happened
+        }    
+    }
+}

@@ -41,7 +41,6 @@ figma.ui.onmessage = async (eventData) => {
         await removeVariableCollection(eventData.fileName);
     }
     else if (eventData.type === "SWAP_VARIABLES") {
-        debugger;
         const key = eventData.fileName;
 
         if(!key) {

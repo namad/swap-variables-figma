@@ -1,6 +1,6 @@
 {
     "name": "Swap Variables",
-    "id": "xxx",
+    "id": "1349108836145173291",
     "api": "1.0.0",
     "main": "dist/plugin.js",
     "networkAccess": {
