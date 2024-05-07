@@ -160,6 +160,9 @@ export async function bindPropertyVariables(props, figmaFn) {
 }
 
 async function bindVariable(node: SceneNode, propName: any, variableBinding: any): Promise<SceneNode> {
+
+    if(propName == 'characters') debugger
+
     if (propName == 'fills' && 'fills' in node) {
         node.fills = await bindPropertyVariables(node.fills, figma.variables.setBoundVariableForPaint);
     }
@@ -189,6 +192,10 @@ async function bindVariable(node: SceneNode, propName: any, variableBinding: any
 async function processTextNode(node: TextNode, count: number): Promise<TextNode> {
     const boundStyleVariables = node.getStyledTextSegments(['boundVariables']);
     const fillStyleTextSegments = node.getStyledTextSegments(['fills']);
+
+    if (node.boundVariables.characters) {
+        await bindVariable(node, 'characters', node.boundVariables.characters)
+    }
 
     for(const textSegment of boundStyleVariables) {
         if('boundVariables' in textSegment) {
@@ -239,7 +246,7 @@ async function bindTextRangeVariables(boundVar: VariableAlias, node: TextNode, t
             node.setRangeBoundVariable(textSegment.start, textSegment.end, propName, variable);
         }
         catch(e) {
-            console.warn(`Failed to bind ${propName} to a variable${variable.name}:${variable.resolvedType}`);
+            console.warn(`Failed to bind ${propName} to a variable ${variable.name}:${variable.resolvedType} in "${textSegment.characters}"`);
             console.log(e); // some coding error in handling happened
         }    
     }
