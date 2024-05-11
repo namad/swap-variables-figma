@@ -31,6 +31,8 @@ reloadStoreButton.addEventListener('click', (e) => {
 swapVariablesButton.addEventListener('click', (e) => {
     const radioButton = document.querySelector('#presetsList input[type=radio]:checked') as HTMLInputElement
     const key = radioButton?.value || null;
+    const overrideTextStylesCheckbox = document.querySelector('input[name=overrideTextStyles]') as HTMLInputElement;
+    const overrideTextStyles = overrideTextStylesCheckbox.checked;
 
     const modal = document.getElementById('swapModal') as HTMLDialogElement;
     const swapProgressMsg = document.getElementById('swapProgress') as HTMLDivElement;
@@ -39,7 +41,7 @@ swapVariablesButton.addEventListener('click', (e) => {
     key && modal.showModal();
 
     parent.postMessage({
-        pluginMessage: { type: 'SWAP_VARIABLES', fileName: key }
+        pluginMessage: { type: 'SWAP_VARIABLES', fileName: key, overrideTextStyles }
     }, "*");
 })
 

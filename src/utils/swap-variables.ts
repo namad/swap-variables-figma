@@ -12,8 +12,7 @@ function checkBoundVariabled(node: SceneNode): boolean {
     return 'boundVariables' in node && Object.keys(node.boundVariables).length > 0
 }
 
-export async function swapVariables(data: LibraryVariable[]) {
-
+export async function swapVariables(data: LibraryVariable[], overrideTextStyles = false) {
     importadVariablesLibrary = [];
 
     await Promise.all(data.map(async (record) => {
@@ -61,7 +60,7 @@ export async function swapVariables(data: LibraryVariable[]) {
         const msg = `${percent}% done. Working on layer ${processed} out of ${total}`
         console.log(msg);
 
-        await processLayer(node, processed).catch(err => {
+        await processLayer(node, overrideTextStyles, processed).catch(err => {
             console.error(err);
         });
 
@@ -109,11 +108,12 @@ export async function findVariableMatch(varId: string) {
 }
 
 
-async function processLayer(node:SceneNode, count:number) {
+async function processLayer(node:SceneNode, overrideTextStyles: boolean, count:number) {
+
     const boundVairables = Object.entries(node.boundVariables);
 
     if(node.type == 'TEXT') {
-        return await processTextNode(node, count)
+        return await processTextNode(node, overrideTextStyles, count)
     }
 
     
@@ -189,52 +189,60 @@ async function bindVariable(node: SceneNode, propName: any, variableBinding: any
     return node;
 }
 
-async function processTextNode(node: TextNode, count: number): Promise<TextNode> {
-    const boundStyleVariables = node.getStyledTextSegments(['boundVariables']);
-    const fillStyleTextSegments = node.getStyledTextSegments(['fills']);
+async function processTextNode(node: TextNode, overrideTextStyles: boolean, count: number): Promise<TextNode> {
+    let textSegmentBoundVariables = node.getStyledTextSegments(['boundVariables']);
+    const styledTextSegments = node.getStyledTextSegments(['boundVariables', 'textStyleId']);
 
-    if (node.boundVariables.characters) {
-        await bindVariable(node, 'characters', node.boundVariables.characters)
+    if (overrideTextStyles !== true) {
+        textSegmentBoundVariables = styledTextSegments.filter(segment => !segment.textStyleId)
     }
 
-    for(const textSegment of boundStyleVariables) {
-        if('boundVariables' in textSegment) {
-            const boundVairables = Object.entries(textSegment.boundVariables) as [any, VariableAlias][];
+    const fillStyleTextSegments = node.getStyledTextSegments(['fills']);
 
-            
+    // if (node.boundVariables.characters) {
+    //     await bindVariable(node, 'characters', node.boundVariables.characters);
+    // }
+
+    for(const textSegment of textSegmentBoundVariables) {
+        if('boundVariables' in textSegment) {
+            const boundVairables = Object.entries(textSegment.boundVariables) as [string, VariableAlias][];
+
             await Promise.all(boundVairables.map(async ([propName, boundVar]) => {
                 return await bindTextRangeVariables(boundVar, node, textSegment, propName);
             }))
-
         }
     }
 
-    for(const textSegment of fillStyleTextSegments) {
-        if('fills' in textSegment) {
-            let newPaints = []
-            for(const fill of textSegment.fills) {
-                if('boundVariables' in fill) {
-                    const colorVariableReference = fill.boundVariables.color.id;
-                    const figmaVariable = await findVariableMatch(colorVariableReference);
-
-                    if(!figmaVariable) continue;
-
-                    const boundFill = figma.variables.setBoundVariableForPaint(fill, 'color', figmaVariable);
-                    newPaints.push(boundFill);
-                }
-            }
-
-            if(newPaints.length) {
-                node.setRangeFills(textSegment.start, textSegment.end, newPaints);
-            }
-        }
-    }
+    await setTextSegmentFills(fillStyleTextSegments, node);
     
     if(count % 50 == 0) {
         await delayAsync(1);
     }
     
     return node;
+}
+
+async function setTextSegmentFills(fillStyleTextSegments: Pick<StyledTextSegment, "fills" | "characters" | "start" | "end">[], node: TextNode) {
+    for (const textSegment of fillStyleTextSegments) {
+        if ('fills' in textSegment) {
+            let newPaints = [];
+            for (const fill of textSegment.fills) {
+                if ('boundVariables' in fill) {
+                    const colorVariableReference = fill.boundVariables.color.id;
+                    const figmaVariable = await findVariableMatch(colorVariableReference);
+
+                    if (!figmaVariable) continue;
+
+                    const boundFill = figma.variables.setBoundVariableForPaint(fill, 'color', figmaVariable);
+                    newPaints.push(boundFill);
+                }
+            }
+
+            if (newPaints.length) {
+                node.setRangeFills(textSegment.start, textSegment.end, newPaints);
+            }
+        }
+    }
 }
 
 async function bindTextRangeVariables(boundVar: VariableAlias, node: TextNode, textSegment: Pick<StyledTextSegment, "characters" | "start" | "end" | "boundVariables">, propName: any) {

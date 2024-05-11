@@ -21,8 +21,8 @@ const collectionNames = new Map<string, string>([
 ]);
 
 figma.showUI(__html__, {
-    width: 320,
-    height: 320,
+    width: 360,
+    height: 480,
     themeColors: true,
 });
 
@@ -48,7 +48,7 @@ figma.ui.onmessage = async (eventData) => {
         }
         const data = store.get(key);
 
-        const layersCount = await swapVariables(data).catch(err => {
+        const layersCount = await swapVariables(data, eventData.overrideTextStyles).catch(err => {
             console.error(err);
             figma.notify(err, {error: true});
             throw err;
